@@ -90,40 +90,50 @@ vectors
     $adjectives = $adjectives -split "`r`n"
     $nouns = $nouns -split "`r`n"
 
-    function GetRandomAction
+    function GetRandomAction($PreviousAction = '')
     {
-        $ran = Get-Random -Minimum 0 -Maximum $verbs.Count
-        $w1 = $verbs[$ran]
-        $w1 = $w1.Substring(0, 1).ToUpper() + $w1.Substring(1, $w1.Length -1)
+        # Generates an action from the verb-adjective-noun list
+        # If specified, generates an action that doesn't contain any keywords from the previous action
+        do {
+            $ran = Get-Random -Minimum 0 -Maximum $verbs.Count
+            $w1 = $verbs[$ran]
+            $w1 = $w1.Substring(0, 1).ToUpper() + $w1.Substring(1, $w1.Length -1)
+        } while ($PreviousAction -match $w1)
 
-        $ran = Get-Random -Minimum 0 -Maximum $adjectives.Count
-        $w2 = $adjectives[$ran]
+        do {
+            $ran = Get-Random -Minimum 0 -Maximum $adjectives.Count
+            $w2 = $adjectives[$ran]
+        } while ($PreviousAction -match $w2)
 
-        $ran = Get-Random -Minimum 0 -Maximum $nouns.Count
-        $w3 = $nouns[$ran]
+        do {
+            $ran = Get-Random -Minimum 0 -Maximum $nouns.Count
+            $w3 = $nouns[$ran]
+        } while ($PreviousAction -match $w3)
         "$w1 $w2 $w3"
     }
 
     $mainAction = GetRandomAction
     for ($i=0; $i -lt $Duration; $i++) {
-        $number = Get-Random -Maximum 10
+        $number = Get-Random -Maximum 8
     
         if ($i % 2 -eq 0 -and $number -lt 4)
         {
-            $mainAction = GetRandomAction
+            $mainAction = GetRandomAction($mainAction)
         }
 
         $percent = ($i/$duration*100).ToString("0.00")
         Write-Progress -Activity "$mainAction..." -PercentComplete $percent -CurrentOperation "$percent% complete" -Status "Please wait"
         Start-Sleep 1
 
+        # Second progress bar
         if ($LookMoreImportant) {
+            $nestedAction = ''
             if ($i % 2 -eq 0 -and $number -lt 3)
             {
                 $ran = Get-Random -Minimum 5 -Maximum 24
                 do
                 {
-                    $nestedAction = GetRandomAction
+                    $nestedAction = GetRandomAction($nestedAction)
                 }
                 while ($nestedAction -eq $mainAction)
 
@@ -131,7 +141,7 @@ vectors
                 {
                     $complete = [int](($j+1)/$ran*100)
                     Write-Progress -Activity "$nestedAction..." -PercentComplete $complete -CurrentOperation "$complete% complete" -Status "Please wait" -Id 1
-                    Start-Sleep -Milliseconds 250
+                    Start-Sleep -Milliseconds 100
                 }
             }
         } # end of if
